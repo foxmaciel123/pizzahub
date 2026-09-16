@@ -385,11 +385,13 @@ class OrderStore {
     if (!order) throw new Error('Pedido não encontrado.')
     if (order.status !== 'new') throw new Error('Apenas pedidos novos podem ser aceitos.')
 
-    // Tenta Supabase RPC primeiro se online
+    // Tenta Supabase RPC e Edge Functions de envio ao PDV e sincronização externa
     try {
       await supabase.rpc('confirm_order', { order_id: orderId })
+      await supabase.functions.invoke('push-order-to-pdv', { body: { order_id: orderId } })
+      await supabase.functions.invoke('sync-order-status', { body: { order_id: orderId, to_status: 'confirmed' } })
     } catch (e) {
-      console.warn('RPC Supabase offline, operando via store reativo local')
+      console.warn('Supabase offline, operando envio ao PDV em modo reativo local:', e)
     }
 
     const previousStatus = order.status
