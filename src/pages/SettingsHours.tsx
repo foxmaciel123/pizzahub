@@ -1,107 +1,197 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
 import { AppLayout } from '@/layouts/AppLayout'
-import { Clock, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-react'
+import { settingsService, OperatingHourDay } from '@/services/settingsService'
+import {
+  Clock,
+  CheckCircle2,
+  Save,
+  RotateCcw,
+  DollarSign,
+  Flame,
+  Truck,
+  Calendar
+} from 'lucide-react'
 
 export const SettingsHours: React.FC = () => {
+  const [hours, setHours] = useState<OperatingHourDay[]>(settingsService.getOperatingHours())
+  const [feedback, setFeedback] = useState<string | null>(null)
+
+  useEffect(() => {
+    const unsub = settingsService.subscribe(() => {
+      setHours(settingsService.getOperatingHours())
+    })
+    return unsub
+  }, [])
+
+  const handleUpdateDay = (index: number, updates: Partial<OperatingHourDay>) => {
+    const updated = [...hours]
+    updated[index] = { ...updated[index], ...updates }
+    setHours(updated)
+  }
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await settingsService.updateOperatingHours(hours)
+    setFeedback('Horários de funcionamento e taxas salvos com sucesso!')
+    setTimeout(() => setFeedback(null), 4000)
+  }
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-8 max-w-5xl mx-auto space-y-6">
-        {/* Breadcrumb & Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-5">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <Link to="/unified-orders" className="hover:text-orange-400 transition-colors">PizzaHub</Link>
-              <span>/</span>
-              <span className="text-orange-400 font-medium">Horários de Funcionamento & Taxas</span>
-            </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-              <Clock className="w-6 h-6 text-orange-500 shrink-0" />
-              <span>Horários de Funcionamento & Taxas</span>
-            </h1>
-            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-              Grade semanal de horários de abertura/fechamento, tempos estimados de preparo e regras de taxa de entrega.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-300">
-              /settings-hours
-            </span>
-            <span className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border text-amber-400 border-amber-500/30 bg-amber-500/10">
-              Apenas Dono / Gerente
-            </span>
-          </div>
-        </div>
-
-        {/* Phase 1 Status Banner */}
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent border border-orange-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-6 text-slate-100">
+        {/* Cabeçalho */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/20">
+              <Clock className="w-6 h-6" />
             </div>
             <div>
-              <div className="text-xs font-bold text-white flex items-center gap-2">
-                <span>Layout Base Navegável Pronto</span>
-                <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium">Fase 1 OK</span>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Esta tela faz parte da arquitetura inicial do PizzaHub. A lógica operacional e integração com Supabase serão ativadas na Fase 2.
+              <h1 className="text-2xl font-bold text-white tracking-tight">
+                Horários de Funcionamento & Taxas
+              </h1>
+              <p className="text-sm text-slate-400 mt-0.5">
+                Defina o expediente semanal, tempo médio de preparo da cozinha e taxa de entrega dos canais próprios (WhatsApp e site)
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-300">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Rota Protegida</span>
-            </span>
-          </div>
+          <button
+            onClick={() => settingsService.resetToDefault()}
+            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 transition"
+            title="Resetar horários para os padrões"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Feature Cards Grid (Future Scope from docs/ESTRUTURA.md & docs/PAGINAS.md) */}
-        <div className="space-y-3">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Módulos Planejados para esta Tela (Fase 2)
-          </h2>
+        {feedback && (
+          <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>{feedback}</span>
+          </div>
+        )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-            <div key="0" className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition-all space-y-2">
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-lg bg-orange-500/10 text-orange-400 font-mono text-[10px] flex items-center justify-center font-bold">1</span>
-                <span>Horários por Canal</span>
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">Definição de aberturas diferenciadas para iFood vs site próprio e WhatsApp.
-              </p>
+        <form onSubmit={handleSave} className="space-y-6">
+          {/* Tabela de Dias da Semana */}
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className="p-4 border-b border-slate-800 bg-slate-950/50 flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Grade de Horários Semanais
+              </span>
+              <span className="text-[11px] text-slate-500">
+                Os pedidos fora do expediente serão pausados ou agendados pela IA
+              </span>
             </div>
-            <div key="1" className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition-all space-y-2">
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-lg bg-orange-500/10 text-orange-400 font-mono text-[10px] flex items-center justify-center font-bold">2</span>
-                <span>Tempo Médio de Preparo</span>
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">Ajuste do tempo estimado exibido aos clientes em dias de chuva ou alta demanda.
-              </p>
-            </div>
-            <div key="2" className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition-all space-y-2">
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-lg bg-orange-500/10 text-orange-400 font-mono text-[10px] flex items-center justify-center font-bold">3</span>
-                <span>Tabela de Entrega</span>
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">Cálculo de taxa fixa, por bairro ou por raio quilométrico da pizzaria.
-              </p>
+
+            <div className="divide-y divide-slate-800/60">
+              {hours.map((day, idx) => (
+                <div
+                  key={day.weekday}
+                  className={`p-4 flex flex-wrap items-center justify-between gap-4 transition ${
+                    day.is_closed ? 'bg-slate-950/40 opacity-75' : 'hover:bg-slate-800/20'
+                  }`}
+                >
+                  {/* Nome do dia & Toggle */}
+                  <div className="w-44 flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={!day.is_closed}
+                      onChange={(e) =>
+                        handleUpdateDay(idx, { is_closed: !e.target.checked })
+                      }
+                      className="w-4 h-4 rounded accent-amber-500 cursor-pointer"
+                    />
+                    <div>
+                      <span className="font-bold text-xs text-white block">
+                        {day.day_name}
+                      </span>
+                      <span
+                        className={`text-[10px] font-semibold ${
+                          day.is_closed ? 'text-red-400' : 'text-emerald-400'
+                        }`}
+                      >
+                        {day.is_closed ? 'Fechado' : 'Aberto'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Horário de Abertura e Fechamento */}
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-0.5">Abertura</label>
+                      <input
+                        type="time"
+                        disabled={day.is_closed}
+                        value={day.open_time}
+                        onChange={(e) => handleUpdateDay(idx, { open_time: e.target.value })}
+                        className="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white disabled:opacity-40 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+
+                    <span className="text-slate-500 text-xs mt-3">até</span>
+
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-0.5">Fechamento</label>
+                      <input
+                        type="time"
+                        disabled={day.is_closed}
+                        value={day.close_time}
+                        onChange={(e) => handleUpdateDay(idx, { close_time: e.target.value })}
+                        className="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white disabled:opacity-40 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Tempo Médio de Preparo */}
+                  <div className="w-36">
+                    <label className="text-[10px] text-slate-500 block mb-0.5">Tempo Preparo</label>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        disabled={day.is_closed}
+                        value={day.avg_prep_minutes}
+                        onChange={(e) =>
+                          handleUpdateDay(idx, { avg_prep_minutes: Number(e.target.value) })
+                        }
+                        className="w-16 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white disabled:opacity-40 focus:outline-none focus:border-amber-500"
+                      />
+                      <span className="text-xs text-slate-400">min</span>
+                    </div>
+                  </div>
+
+                  {/* Taxa de Entrega */}
+                  <div className="w-36">
+                    <label className="text-[10px] text-slate-500 block mb-0.5">Taxa de Entrega</label>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-slate-400">R$</span>
+                      <input
+                        type="number"
+                        step="0.50"
+                        disabled={day.is_closed}
+                        value={day.delivery_fee}
+                        onChange={(e) =>
+                          handleUpdateDay(idx, { delivery_fee: Number(e.target.value) })
+                        }
+                        className="w-20 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white disabled:opacity-40 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
 
-        {/* Informações de Acesso e Papéis */}
-        <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 flex items-center justify-between text-xs text-slate-400">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-orange-400" />
-            <span>Nível de Acesso: <strong>Apenas Dono / Gerente</strong></span>
+          {/* Botão Salvar */}
+          <div className="flex items-center justify-end">
+            <button
+              type="submit"
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition transform active:scale-95"
+            >
+              <Save className="w-4 h-4" />
+              <span>Salvar Horários & Taxas</span>
+            </button>
           </div>
-          <span className="text-[11px] text-slate-500 font-mono">PizzaHub v0.1 • docs/PAGINAS.md</span>
-        </div>
+        </form>
       </div>
     </AppLayout>
   )

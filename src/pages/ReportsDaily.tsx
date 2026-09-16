@@ -1,106 +1,266 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
 import { AppLayout } from '@/layouts/AppLayout'
-import { BarChart2, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-react'
+import { reportService, DailyReportData } from '@/services/reportService'
+import {
+  BarChart2,
+  Sparkles,
+  Calendar,
+  DollarSign,
+  ShoppingBag,
+  TrendingUp,
+  AlertOctagon,
+  RotateCcw,
+  CheckCircle2,
+  Clock,
+  Pizza,
+  Zap,
+  Layers,
+  ArrowRight
+} from 'lucide-react'
 
 export const ReportsDaily: React.FC = () => {
+  const [report, setReport] = useState<DailyReportData>(reportService.getDailyReport())
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  )
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [feedback, setFeedback] = useState<string | null>(null)
+
+  useEffect(() => {
+    const unsub = reportService.subscribe(() => {
+      setReport(reportService.getDailyReport())
+    })
+    return unsub
+  }, [])
+
+  const handleGenerateReport = async () => {
+    setIsGenerating(true)
+    setFeedback(null)
+    try {
+      await reportService.generateDailyReport(selectedDate)
+      setFeedback('Relatório diário recalculado e analisado com sucesso pela IA!')
+      setTimeout(() => setFeedback(null), 4000)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const { metrics, ai_insights } = report
+  const ownChannelsRevenue = (metrics.channels.whatsapp || 0) + (metrics.channels.own_site || 0)
+  const ownChannelsPct = metrics.total_revenue > 0
+    ? Math.round((ownChannelsRevenue / metrics.total_revenue) * 100)
+    : 0
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-8 max-w-5xl mx-auto space-y-6">
-        {/* Breadcrumb & Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-5">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <Link to="/unified-orders" className="hover:text-orange-400 transition-colors">PizzaHub</Link>
-              <span>/</span>
-              <span className="text-orange-400 font-medium">Relatório Diário de Operação</span>
-            </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-              <BarChart2 className="w-6 h-6 text-orange-500 shrink-0" />
-              <span>Relatório Diário de Operação</span>
-            </h1>
-            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-              Fechamento do caixa diário: faturamento por canal, ticket médio, pizzas mais pedidas e cancelamentos.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-300">
-              /reports-daily
-            </span>
-            <span className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border text-amber-400 border-amber-500/30 bg-amber-500/10">
-              Apenas Dono / Gerente
-            </span>
-          </div>
-        </div>
-
-        {/* Phase 1 Status Banner */}
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent border border-orange-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 text-slate-100">
+        {/* Cabeçalho */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/20">
+              <BarChart2 className="w-6 h-6" />
             </div>
             <div>
-              <div className="text-xs font-bold text-white flex items-center gap-2">
-                <span>Layout Base Navegável Pronto</span>
-                <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium">Fase 1 OK</span>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-white tracking-tight">
+                  Relatório Diário de Vendas & IA
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-purple-400" />
+                  Fechamento com IA
+                </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Esta tela faz parte da arquitetura inicial do PizzaHub. A lógica operacional e integração com Supabase serão ativadas na Fase 2.
+              <p className="text-sm text-slate-400 mt-0.5">
+                Consolidação de faturamento por canal, ticket médio, cancelamentos e diagnóstico automático do expediente
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-300">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Rota Protegida</span>
+          {/* Seletor de Data e Ações */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs">
+              <Calendar className="w-4 h-4 text-slate-400" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-transparent text-white focus:outline-none"
+              />
+            </div>
+
+            <button
+              onClick={handleGenerateReport}
+              disabled={isGenerating}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center gap-2 shadow-lg shadow-purple-900/30 transition transform active:scale-95"
+            >
+              <Sparkles className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+              <span>{isGenerating ? 'Processando IA...' : 'Atualizar Relatório com IA'}</span>
+            </button>
+          </div>
+        </div>
+
+        {feedback && (
+          <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>{feedback}</span>
+          </div>
+        )}
+
+        {/* Cards de Métricas Principais */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-lg">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Faturamento Total
+            </p>
+            <p className="text-2xl font-black text-emerald-400 mt-1">
+              R$ {metrics.total_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              Receita consolidada de todos os canais
+            </span>
+          </div>
+
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-lg">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Pedidos Concluídos
+            </p>
+            <p className="text-2xl font-black text-white mt-1">{metrics.total_orders}</p>
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              Volume total entregue no expediente
+            </span>
+          </div>
+
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-lg">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Ticket Médio
+            </p>
+            <p className="text-2xl font-black text-amber-400 mt-1">
+              R$ {metrics.average_ticket.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              Média por pedido fechado
+            </span>
+          </div>
+
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-lg">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Cancelamentos
+            </p>
+            <p className="text-2xl font-black text-red-400 mt-1">
+              {metrics.canceled_orders} ({metrics.cancellation_rate}%)
+            </p>
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              Taxa de tolerância abaixo de 3%
             </span>
           </div>
         </div>
 
-        {/* Feature Cards Grid (Future Scope from docs/ESTRUTURA.md & docs/PAGINAS.md) */}
-        <div className="space-y-3">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Módulos Planejados para esta Tela (Fase 2)
-          </h2>
+        {/* Gráfico / Distribuição por Canal & Itens Mais Vendidos */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Faturamento por Canal */}
+          <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                  Faturamento por Canal de Origem
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Canais próprios representaram <strong>{ownChannelsPct}%</strong> do total hoje
+                </p>
+              </div>
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
+                Margem Cheia sem Comissões: R$ {ownChannelsRevenue.toFixed(2)}
+              </span>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-            <div key="0" className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition-all space-y-2">
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-lg bg-orange-500/10 text-orange-400 font-mono text-[10px] flex items-center justify-center font-bold">1</span>
-                <span>Faturamento por Canal</span>
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">Comparativo percentual de vendas entre iFood, 99Food, WhatsApp e balcão.
-              </p>
+            <div className="space-y-3.5">
+              {[
+                { name: 'iFood Delivery', value: metrics.channels.ifood, color: 'bg-red-500' },
+                { name: 'WhatsApp (Canal Próprio)', value: metrics.channels.whatsapp, color: 'bg-emerald-500' },
+                { name: '99Food', value: metrics.channels['99food'], color: 'bg-amber-500' },
+                { name: 'Keeta Delivery', value: metrics.channels.keeta, color: 'bg-teal-500' },
+                { name: 'Site Próprio (/loja)', value: metrics.channels.own_site, color: 'bg-purple-500' }
+              ].map((channel) => {
+                const pct = metrics.total_revenue > 0
+                  ? Math.round((channel.value / metrics.total_revenue) * 100)
+                  : 0
+
+                return (
+                  <div key={channel.name} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-200">{channel.name}</span>
+                      <span className="font-bold text-white">
+                        R$ {channel.value.toFixed(2)} ({pct}%)
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${channel.color} transition-all duration-500`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-            <div key="1" className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition-all space-y-2">
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-lg bg-orange-500/10 text-orange-400 font-mono text-[10px] flex items-center justify-center font-bold">2</span>
-                <span>Ticket Médio e Cancelados</span>
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">Métricas de eficiência e detalhamento dos motivos de cancelamento do dia.
-              </p>
+          </div>
+
+          {/* Ranking dos Itens Mais Vendidos */}
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Pizza className="w-4 h-4 text-amber-400" />
+                <span>Mais Vendidos</span>
+              </h3>
+              <span className="text-xs text-slate-500">Unidades</span>
             </div>
-            <div key="2" className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition-all space-y-2">
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-lg bg-orange-500/10 text-orange-400 font-mono text-[10px] flex items-center justify-center font-bold">3</span>
-                <span>Exportação de Fechamento</span>
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">Emissão de resumo diário pronto para conferência contábil e envio por WhatsApp.
-              </p>
+
+            <div className="space-y-3">
+              {metrics.top_items.map((item, idx) => (
+                <div
+                  key={item.name}
+                  className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between gap-2"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-6 h-6 rounded-lg bg-slate-800 text-amber-400 font-black text-xs flex items-center justify-center">
+                      {idx + 1}º
+                    </span>
+                    <span className="text-xs font-semibold text-slate-200 truncate max-w-[160px]">
+                      {item.name}
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 font-bold text-xs">
+                    {item.quantity} un
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Informações de Acesso e Papéis */}
-        <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 flex items-center justify-between text-xs text-slate-400">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-orange-400" />
-            <span>Nível de Acesso: <strong>Apenas Dono / Gerente</strong></span>
+        {/* Card de Diagnóstico e Insights da IA */}
+        <div className="bg-gradient-to-br from-purple-950/40 via-slate-900 to-indigo-950/30 border border-purple-500/30 rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="flex items-center justify-between border-b border-purple-500/20 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-white">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <h3 className="text-base font-bold text-white">
+                Diagnóstico Executivo com IA (Gemini / GPT)
+              </h3>
+            </div>
+            <span className="text-xs text-purple-300 font-medium">
+              Gerado automaticamente às{' '}
+              {new Date(report.generated_at).toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </span>
           </div>
-          <span className="text-[11px] text-slate-500 font-mono">PizzaHub v0.1 • docs/PAGINAS.md</span>
+
+          <div className="text-xs text-slate-300 leading-relaxed space-y-4 whitespace-pre-wrap font-sans">
+            {ai_insights}
+          </div>
         </div>
       </div>
     </AppLayout>
