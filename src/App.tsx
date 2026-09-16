@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
 
 import { Login } from '@/pages/Login'
 import { UnifiedOrders } from '@/pages/UnifiedOrders'
@@ -23,25 +24,118 @@ export function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          {/* Rotas Públicas */}
           <Route path="/" element={<Navigate to="/unified-orders" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/loja" element={<PublicStore />} />
 
-          <Route path="/unified-orders" element={<UnifiedOrders />} />
-          <Route path="/order/:id" element={<OrderDetail />} />
-          <Route path="/kitchen-queue" element={<KitchenQueue />} />
-          <Route path="/menu-management" element={<MenuManagement />} />
-          <Route path="/whatsapp-inbox" element={<WhatsappInbox />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/delivery-reviews" element={<DeliveryReviews />} />
-          <Route path="/reports-daily" element={<ReportsDaily />} />
-          <Route path="/reports-weekly" element={<ReportsWeekly />} />
-          <Route path="/settings-channels" element={<SettingsChannels />} />
-          <Route path="/settings-ai" element={<SettingsAi />} />
-          <Route path="/settings-hours" element={<SettingsHours />} />
-          <Route path="/settings-team" element={<SettingsTeam />} />
+          {/* Rotas Protegidas da Equipe Interna */}
+          <Route
+            path="/unified-orders"
+            element={
+              <ProtectedRoute allowedRoles={['owner_manager', 'attendant']}>
+                <UnifiedOrders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/order/:id"
+            element={
+              <ProtectedRoute allowedRoles={['owner_manager', 'attendant', 'kitchen']}>
+                <OrderDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kitchen-queue"
+            element={
+              <ProtectedRoute allowedRoles={['owner_manager', 'attendant', 'kitchen']}>
+                <KitchenQueue />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/menu-management"
+            element={
+              <ProtectedRoute allowedRoles={['owner_manager']}>
+                <MenuManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/whatsapp-inbox"
+            element={
+              <ProtectedRoute allowedRoles={['owner_manager', 'attendant']}>
+                <WhatsappInbox />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/inventory"
+            element={
+              <ProtectedRoute allowedRoles={['owner_manager', 'attendant', 'kitchen']}>
+                <Inventory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/delivery-reviews"
+            element={
+              <ProtectedRoute allowedRoles={['owner_manager', 'attendant']}>
+                <DeliveryReviews />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports-daily"
+            element={
+              <ProtectedRoute allowedRoles={['owner_manager']}>
+                <ReportsDaily />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports-weekly"
+            element={
+              <ProtectedRoute allowedRoles={['owner_manager']}>
+                <ReportsWeekly />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings-channels"
+            element={
+              <ProtectedRoute allowedRoles={['owner_manager']}>
+                <SettingsChannels />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings-ai"
+            element={
+              <ProtectedRoute allowedRoles={['owner_manager']}>
+                <SettingsAi />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings-hours"
+            element={
+              <ProtectedRoute allowedRoles={['owner_manager']}>
+                <SettingsHours />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings-team"
+            element={
+              <ProtectedRoute allowedRoles={['owner_manager']}>
+                <SettingsTeam />
+              </ProtectedRoute>
+            }
+          />
 
-          <Route path="*" element={<Navigate to="/unified-orders" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
