@@ -1,13 +1,18 @@
 -- ====================================================================
 -- PizzaHub — Schemas do Banco de Dados PostgreSQL (Supabase)
--- 18 Tabelas, Índices, RLS por Tenant (pizzeria_id), Triggers e RPCs
+-- Modelagem de Dados Completa: 18 Tabelas, Índices, RLS e RPCs
+-- Conforme docs/ESTRUTURA.md (Seção 1 e Seção 2)
 -- ====================================================================
 
 -- 1. Extensões
 create extension if not exists "pgcrypto" with schema extensions;
 create extension if not exists "uuid-ossp" with schema extensions;
 
--- 2. Tabela: pizzerias (Tenant raiz)
+-- ====================================================================
+-- 2. TABELAS (18 TABELAS DO MODELO DE DADOS)
+-- ====================================================================
+
+-- 2.1 pizzerias (Tenant raiz)
 create table if not exists public.pizzerias (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -19,7 +24,7 @@ create table if not exists public.pizzerias (
 );
 create unique index if not exists idx_pizzerias_cnpj on public.pizzerias (cnpj);
 
--- 3. Tabela: profiles (Usuários internos vinculados ao auth.users)
+-- 2.2 profiles (Espelha auth.users e vincula funcionário à pizzaria)
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   pizzeria_id uuid not null references public.pizzerias(id) on delete cascade,
@@ -31,17 +36,7 @@ create table if not exists public.profiles (
 create index if not exists idx_profiles_pizzeria_id on public.profiles(pizzeria_id);
 create index if not exists idx_profiles_role on public.profiles(pizzeria_id, role);
 
--- 4. Função auxiliar: current_pizzeria_id()
-create or replace function public.current_pizzeria_id()
-returns uuid
-language sql
-security definer
-stable
-as $$
-  select pizzeria_id from public.profiles where id = auth.uid() limit 1;
-$$;
-
--- 5. Tabela: sales_channels (Canais de venda e integrações)
+-- 2.3 sales_channels (Canais de venda e integrações)
 create table if not exists public.sales_channels (
   id uuid primary key default gen_random_uuid(),
   pizzeria_id uuid not null references public.pizzerias(id) on delete cascade,
@@ -56,7 +51,7 @@ create table if not exists public.sales_channels (
 create index if not exists idx_sales_channels_pizzeria_id on public.sales_channels(pizzeria_id);
 create index if not exists idx_sales_channels_type on public.sales_channels(pizzeria_id, channel_type);
 
--- 6. Tabela: menu_categories
+-- 2.4 menu_categories (Categorias do cardápio próprio)
 create table if not exists public.menu_categories (
   id uuid primary key default gen_random_uuid(),
   pizzeria_id uuid not null references public.pizzerias(id) on delete cascade,
@@ -65,7 +60,7 @@ create table if not exists public.menu_categories (
 );
 create index if not exists idx_menu_categories_pizzeria_id on public.menu_categories(pizzeria_id, sort_order);
 
--- 7. Tabela: menu_items
+-- 2.5 menu_items (Produtos do cardápio próprio)
 create table if not exists public.menu_items (
   id uuid primary key default gen_random_uuid(),
   pizzeria_id uuid not null references public.pizzerias(id) on delete cascade,
@@ -81,7 +76,7 @@ create index if not exists idx_menu_items_pizzeria_id on public.menu_items(pizze
 create index if not exists idx_menu_items_category_id on public.menu_items(category_id);
 create index if not exists idx_menu_items_available on public.menu_items(pizzeria_id, is_available);
 
--- 8. Tabela: menu_item_options
+-- 2.6 menu_item_options (Adicionais, tamanhos e bordas)
 create table if not exists public.menu_item_options (
   id uuid primary key default gen_random_uuid(),
   menu_item_id uuid not null references public.menu_items(id) on delete cascade,
@@ -91,7 +86,7 @@ create table if not exists public.menu_item_options (
 );
 create index if not exists idx_menu_item_options_item_id on public.menu_item_options(menu_item_id);
 
--- 9. Tabela: customers (Clientes finais de WhatsApp / Site)
+-- 2.7 customers (Clientes finais de canais próprios)
 create table if not exists public.customers (
   id uuid primary key default gen_random_uuid(),
   pizzeria_id uuid not null references public.pizzerias(id) on delete cascade,
@@ -103,7 +98,7 @@ create table if not exists public.customers (
 create index if not exists idx_customers_pizzeria_id on public.customers(pizzeria_id);
 create index if not exists idx_customers_phone on public.customers(pizzeria_id, phone);
 
--- 10. Tabela: orders
+-- 2.8 orders (Pedidos de todos os canais)
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   pizzeria_id uuid not null references public.pizzerias(id) on delete cascade,
@@ -128,7 +123,7 @@ create index if not exists idx_orders_status on public.orders(pizzeria_id, statu
 create index if not exists idx_orders_external on public.orders(channel_id, external_order_id);
 create index if not exists idx_orders_received_at on public.orders(pizzeria_id, received_at);
 
--- 11. Tabela: order_items
+-- 2.9 order_items (Itens de cada pedido)
 create table if not exists public.order_items (
   id uuid primary key default gen_random_uuid(),
   order_id uuid not null references public.orders(id) on delete cascade,
@@ -142,7 +137,7 @@ create table if not exists public.order_items (
 create index if not exists idx_order_items_order_id on public.order_items(order_id);
 create index if not exists idx_order_items_menu_item_id on public.order_items(menu_item_id);
 
--- 12. Tabela: order_status_history
+-- 2.10 order_status_history (Trilha de auditoria imutável)
 create table if not exists public.order_status_history (
   id uuid primary key default gen_random_uuid(),
   order_id uuid not null references public.orders(id) on delete cascade,
@@ -154,7 +149,7 @@ create table if not exists public.order_status_history (
 );
 create index if not exists idx_order_status_history_order_id on public.order_status_history(order_id, created_at);
 
--- 13. Tabela: whatsapp_conversations
+-- 2.11 whatsapp_conversations (Conversas de WhatsApp)
 create table if not exists public.whatsapp_conversations (
   id uuid primary key default gen_random_uuid(),
   pizzeria_id uuid not null references public.pizzerias(id) on delete cascade,
@@ -169,7 +164,7 @@ create index if not exists idx_wa_conv_pizzeria on public.whatsapp_conversations
 create index if not exists idx_wa_conv_phone on public.whatsapp_conversations(pizzeria_id, customer_phone);
 create index if not exists idx_wa_conv_needs_human on public.whatsapp_conversations(pizzeria_id, needs_human);
 
--- 14. Tabela: whatsapp_messages
+-- 2.12 whatsapp_messages (Mensagens individuais)
 create table if not exists public.whatsapp_messages (
   id uuid primary key default gen_random_uuid(),
   conversation_id uuid not null references public.whatsapp_conversations(id) on delete cascade,
@@ -180,7 +175,7 @@ create table if not exists public.whatsapp_messages (
 );
 create index if not exists idx_wa_messages_conversation on public.whatsapp_messages(conversation_id, created_at);
 
--- 15. Tabela: inventory_items
+-- 2.13 inventory_items (Insumos monitorados para previsão)
 create table if not exists public.inventory_items (
   id uuid primary key default gen_random_uuid(),
   pizzeria_id uuid not null references public.pizzerias(id) on delete cascade,
@@ -192,7 +187,7 @@ create table if not exists public.inventory_items (
 );
 create index if not exists idx_inventory_pizzeria on public.inventory_items(pizzeria_id);
 
--- 16. Tabela: inventory_alerts
+-- 2.14 inventory_alerts (Alertas preventivos de reposição)
 create table if not exists public.inventory_alerts (
   id uuid primary key default gen_random_uuid(),
   pizzeria_id uuid not null references public.pizzerias(id) on delete cascade,
@@ -204,7 +199,7 @@ create table if not exists public.inventory_alerts (
 );
 create index if not exists idx_inventory_alerts_pizzeria on public.inventory_alerts(pizzeria_id, resolved, created_at desc);
 
--- 17. Tabela: delivery_reviews
+-- 2.15 delivery_reviews (Avaliações de delivery para IA)
 create table if not exists public.delivery_reviews (
   id uuid primary key default gen_random_uuid(),
   pizzeria_id uuid not null references public.pizzerias(id) on delete cascade,
@@ -220,7 +215,7 @@ create index if not exists idx_reviews_pizzeria on public.delivery_reviews(pizze
 create index if not exists idx_reviews_channel on public.delivery_reviews(channel_id);
 create index if not exists idx_reviews_sentiment on public.delivery_reviews(pizzeria_id, ai_sentiment);
 
--- 18. Tabela: reports
+-- 2.16 reports (Relatórios diário e semanal consolidados)
 create table if not exists public.reports (
   id uuid primary key default gen_random_uuid(),
   pizzeria_id uuid not null references public.pizzerias(id) on delete cascade,
@@ -233,7 +228,7 @@ create table if not exists public.reports (
 );
 create index if not exists idx_reports_pizzeria_type on public.reports(pizzeria_id, report_type, period_start desc);
 
--- 19. Tabela: ai_settings
+-- 2.17 ai_settings (Configuração da IA por pizzaria)
 create table if not exists public.ai_settings (
   id uuid primary key default gen_random_uuid(),
   pizzeria_id uuid not null references public.pizzerias(id) on delete cascade unique,
@@ -245,7 +240,7 @@ create table if not exists public.ai_settings (
 );
 create index if not exists idx_ai_settings_pizzeria on public.ai_settings(pizzeria_id);
 
--- 20. Tabela: operating_hours
+-- 2.18 operating_hours (Horários de funcionamento por canal próprio)
 create table if not exists public.operating_hours (
   id uuid primary key default gen_random_uuid(),
   pizzeria_id uuid not null references public.pizzerias(id) on delete cascade,
@@ -258,10 +253,32 @@ create table if not exists public.operating_hours (
 create index if not exists idx_operating_hours_pizzeria on public.operating_hours(pizzeria_id, weekday);
 
 -- ====================================================================
--- TRIGGERS & PROCEDURES
+-- 3. FUNÇÕES AUXILIARES / RPCs DE MULTI-TENANT E PAPÉIS
 -- ====================================================================
 
--- Trigger para registrar automaticamente em order_status_history
+-- 3.1 current_pizzeria_id(): helper SECURITY DEFINER que retorna a pizzaria do usuário logado
+create or replace function public.current_pizzeria_id()
+returns uuid
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select pizzeria_id from public.profiles where id = auth.uid() limit 1;
+$$;
+
+-- 3.2 current_user_role(): helper que retorna o papel interno do usuário autenticado
+create or replace function public.current_user_role()
+returns text
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select role from public.profiles where id = auth.uid() limit 1;
+$$;
+
+-- 3.3 trg_order_status_history_fn(): trigger automático de auditoria imutável
 create or replace function public.trg_order_status_history_fn()
 returns trigger
 language plpgsql
@@ -294,7 +311,7 @@ create trigger trg_order_status_history
   after update of status on public.orders
   for each row execute function public.trg_order_status_history_fn();
 
--- RPC: confirm_order
+-- 3.4 RPC: confirm_order
 create or replace function public.confirm_order(order_id uuid)
 returns jsonb
 language plpgsql
@@ -302,12 +319,18 @@ security definer
 as $$
 declare
   v_order record;
+  v_role text;
 begin
   select * into v_order from public.orders
   where id = order_id and pizzeria_id = public.current_pizzeria_id();
 
   if not found then
     raise exception 'Pedido não encontrado ou acesso negado.';
+  end if;
+
+  v_role := public.current_user_role();
+  if v_role not in ('owner_manager', 'attendant') then
+    raise exception 'Apenas atendentes e gerentes podem aceitar pedidos.';
   end if;
 
   if v_order.status != 'new' then
@@ -322,7 +345,7 @@ begin
 end;
 $$;
 
--- RPC: advance_order_status
+-- 3.5 RPC: advance_order_status
 create or replace function public.advance_order_status(order_id uuid, to_status text)
 returns jsonb
 language plpgsql
@@ -332,18 +355,26 @@ declare
   v_order record;
   v_role text;
 begin
-  select pizzeria_id into v_order from public.orders
+  select * into v_order from public.orders
   where id = order_id and pizzeria_id = public.current_pizzeria_id();
 
   if not found then
     raise exception 'Pedido não encontrado ou acesso negado.';
   end if;
 
-  select role into v_role from public.profiles where id = auth.uid();
+  v_role := public.current_user_role();
 
-  -- Validação de papéis: Cozinha restrita a transições de preparo
-  if v_role = 'kitchen' and to_status not in ('in_preparation', 'ready') then
-    raise exception 'Papel de cozinha só pode alterar para em preparo ou pronto.';
+  -- Cozinha restrita exclusivamente às transições confirmed -> in_preparation -> ready
+  if v_role = 'kitchen' then
+    if to_status not in ('in_preparation', 'ready') then
+      raise exception 'Papel de cozinha restrito às transições de preparo (em preparo ou pronto).';
+    end if;
+    if to_status = 'in_preparation' and v_order.status != 'confirmed' then
+      raise exception 'Pedido precisa estar confirmado para entrar em preparo.';
+    end if;
+    if to_status = 'ready' and v_order.status != 'in_preparation' then
+      raise exception 'Pedido precisa estar em preparo para ser marcado como pronto.';
+    end if;
   end if;
 
   update public.orders
@@ -357,7 +388,7 @@ end;
 $$;
 
 -- ====================================================================
--- ROW LEVEL SECURITY (RLS)
+-- 4. ROW LEVEL SECURITY (RLS) EM TODAS AS 18 TABELAS
 -- ====================================================================
 
 alter table public.pizzerias enable row level security;
@@ -379,100 +410,180 @@ alter table public.reports enable row level security;
 alter table public.ai_settings enable row level security;
 alter table public.operating_hours enable row level security;
 
--- Policies para pizzerias
+-- 4.1 pizzerias: SELECT por qualquer profile da pizzaria; escrita só owner_manager
 create policy pizzerias_select on public.pizzerias
   for select using (id = public.current_pizzeria_id());
-create policy pizzerias_update on public.pizzerias
-  for update using (id = public.current_pizzeria_id() and exists (select 1 from public.profiles where id = auth.uid() and role = 'owner_manager'));
 
--- Policies para profiles
+create policy pizzerias_modify on public.pizzerias
+  for all using (id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager')
+  with check (id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager');
+
+-- 4.2 profiles: SELECT próprio usuário ou owner_manager; gestão de equipe só owner_manager; update próprio nome
 create policy profiles_select on public.profiles
-  for select using (pizzeria_id = public.current_pizzeria_id());
-create policy profiles_all on public.profiles
-  for all using (pizzeria_id = public.current_pizzeria_id() and exists (select 1 from public.profiles where id = auth.uid() and role = 'owner_manager'));
-create policy profiles_update_self on public.profiles
-  for update using (id = auth.uid()) with check (id = auth.uid());
+  for select using (pizzeria_id = public.current_pizzeria_id() and (id = auth.uid() or public.current_user_role() = 'owner_manager'));
 
--- Policies para sales_channels
+create policy profiles_insert on public.profiles
+  for insert with check (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager');
+
+create policy profiles_update on public.profiles
+  for update using (
+    pizzeria_id = public.current_pizzeria_id() and (public.current_user_role() = 'owner_manager' or id = auth.uid())
+  )
+  with check (
+    pizzeria_id = public.current_pizzeria_id() and (public.current_user_role() = 'owner_manager' or id = auth.uid())
+  );
+
+create policy profiles_delete on public.profiles
+  for delete using (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager');
+
+-- 4.3 sales_channels: SELECT equipe; escrita só owner_manager
 create policy sales_channels_select on public.sales_channels
   for select using (pizzeria_id = public.current_pizzeria_id());
-create policy sales_channels_modify on public.sales_channels
-  for all using (pizzeria_id = public.current_pizzeria_id() and exists (select 1 from public.profiles where id = auth.uid() and role = 'owner_manager'));
 
--- Policies para menu_categories
+create policy sales_channels_modify on public.sales_channels
+  for all using (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager')
+  with check (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager');
+
+-- 4.4 ai_settings: SELECT equipe; escrita só owner_manager
+create policy ai_settings_select on public.ai_settings
+  for select using (pizzeria_id = public.current_pizzeria_id());
+
+create policy ai_settings_modify on public.ai_settings
+  for all using (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager')
+  with check (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager');
+
+-- 4.5 operating_hours: SELECT equipe; escrita só owner_manager
+create policy operating_hours_select on public.operating_hours
+  for select using (pizzeria_id = public.current_pizzeria_id());
+
+create policy operating_hours_modify on public.operating_hours
+  for all using (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager')
+  with check (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager');
+
+-- 4.6 menu_categories: SELECT equipe (leitura pública é servida via Edge Function); escrita só owner_manager
 create policy menu_categories_select on public.menu_categories
   for select using (pizzeria_id = public.current_pizzeria_id());
-create policy menu_categories_modify on public.menu_categories
-  for all using (pizzeria_id = public.current_pizzeria_id() and exists (select 1 from public.profiles where id = auth.uid() and role = 'owner_manager'));
 
--- Policies para menu_items
+create policy menu_categories_modify on public.menu_categories
+  for all using (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager')
+  with check (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager');
+
+-- 4.7 menu_items: SELECT equipe; escrita só owner_manager
 create policy menu_items_select on public.menu_items
   for select using (pizzeria_id = public.current_pizzeria_id());
+
 create policy menu_items_modify on public.menu_items
-  for all using (pizzeria_id = public.current_pizzeria_id() and exists (select 1 from public.profiles where id = auth.uid() and role = 'owner_manager'));
+  for all using (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager')
+  with check (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager');
 
--- Policies para menu_item_options
+-- 4.8 menu_item_options: SELECT equipe; escrita só owner_manager
 create policy menu_item_options_select on public.menu_item_options
-  for select using (exists (select 1 from public.menu_items m where m.id = menu_item_options.menu_item_id and m.pizzeria_id = public.current_pizzeria_id()));
-create policy menu_item_options_modify on public.menu_item_options
-  for all using (exists (select 1 from public.menu_items m where m.id = menu_item_options.menu_item_id and m.pizzeria_id = public.current_pizzeria_id() and exists (select 1 from public.profiles where id = auth.uid() and role = 'owner_manager')));
+  for select using (exists (
+    select 1 from public.menu_items m where m.id = menu_item_options.menu_item_id and m.pizzeria_id = public.current_pizzeria_id()
+  ));
 
--- Policies para orders
+create policy menu_item_options_modify on public.menu_item_options
+  for all using (exists (
+    select 1 from public.menu_items m where m.id = menu_item_options.menu_item_id and m.pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager'
+  ))
+  with check (exists (
+    select 1 from public.menu_items m where m.id = menu_item_options.menu_item_id and m.pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager'
+  ));
+
+-- 4.9 orders: SELECT por toda equipe; INSERT manual por atendente/gerente; UPDATE por atendente/kitchen; DELETE bloqueado
 create policy orders_select on public.orders
   for select using (pizzeria_id = public.current_pizzeria_id());
+
 create policy orders_insert on public.orders
-  for insert with check (pizzeria_id = public.current_pizzeria_id());
+  for insert with check (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() in ('owner_manager', 'attendant'));
+
 create policy orders_update on public.orders
-  for update using (pizzeria_id = public.current_pizzeria_id());
+  for update using (
+    pizzeria_id = public.current_pizzeria_id() and (
+      public.current_user_role() in ('owner_manager', 'attendant') or
+      (public.current_user_role() = 'kitchen' and status in ('confirmed', 'in_preparation'))
+    )
+  )
+  with check (
+    pizzeria_id = public.current_pizzeria_id() and (
+      public.current_user_role() in ('owner_manager', 'attendant') or
+      (public.current_user_role() = 'kitchen' and status in ('in_preparation', 'ready'))
+    )
+  );
 
--- Policies para order_items
+-- 4.10 order_items: SELECT equipe; INSERT atendente/gerente; UPDATE/DELETE atendente/gerente
 create policy order_items_select on public.order_items
-  for select using (exists (select 1 from public.orders o where o.id = order_items.order_id and o.pizzeria_id = public.current_pizzeria_id()));
-create policy order_items_all on public.order_items
-  for all using (exists (select 1 from public.orders o where o.id = order_items.order_id and o.pizzeria_id = public.current_pizzeria_id()));
+  for select using (exists (
+    select 1 from public.orders o where o.id = order_items.order_id and o.pizzeria_id = public.current_pizzeria_id()
+  ));
 
--- Policies para order_status_history
+create policy order_items_insert on public.order_items
+  for insert with check (exists (
+    select 1 from public.orders o where o.id = order_items.order_id and o.pizzeria_id = public.current_pizzeria_id() and public.current_user_role() in ('owner_manager', 'attendant')
+  ));
+
+create policy order_items_modify on public.order_items
+  for all using (exists (
+    select 1 from public.orders o where o.id = order_items.order_id and o.pizzeria_id = public.current_pizzeria_id() and public.current_user_role() in ('owner_manager', 'attendant')
+  ));
+
+-- 4.11 order_status_history: SELECT equipe; UPDATE e DELETE bloqueados (trilha imutável)
 create policy order_status_history_select on public.order_status_history
-  for select using (exists (select 1 from public.orders o where o.id = order_status_history.order_id and o.pizzeria_id = public.current_pizzeria_id()));
+  for select using (exists (
+    select 1 from public.orders o where o.id = order_status_history.order_id and o.pizzeria_id = public.current_pizzeria_id()
+  ));
 
--- Policies para whatsapp_conversations & messages
+-- 4.12 whatsapp_conversations: SELECT equipe; UPDATE atendente quando assume conversa; DELETE bloqueado
 create policy whatsapp_conversations_select on public.whatsapp_conversations
   for select using (pizzeria_id = public.current_pizzeria_id());
-create policy whatsapp_conversations_modify on public.whatsapp_conversations
-  for all using (pizzeria_id = public.current_pizzeria_id());
 
+create policy whatsapp_conversations_update on public.whatsapp_conversations
+  for update using (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() in ('owner_manager', 'attendant'));
+
+-- 4.13 whatsapp_messages: SELECT equipe; INSERT por atendente humano; DELETE bloqueado
 create policy whatsapp_messages_select on public.whatsapp_messages
-  for select using (exists (select 1 from public.whatsapp_conversations w where w.id = whatsapp_messages.conversation_id and w.pizzeria_id = public.current_pizzeria_id()));
+  for select using (exists (
+    select 1 from public.whatsapp_conversations w where w.id = whatsapp_messages.conversation_id and w.pizzeria_id = public.current_pizzeria_id()
+  ));
 
--- Policies para inventory_items & alerts
+create policy whatsapp_messages_insert on public.whatsapp_messages
+  for insert with check (exists (
+    select 1 from public.whatsapp_conversations w where w.id = whatsapp_messages.conversation_id and w.pizzeria_id = public.current_pizzeria_id() and public.current_user_role() in ('owner_manager', 'attendant')
+  ));
+
+-- 4.14 customers: SELECT equipe; INSERT/UPDATE atendente/gerente; DELETE só owner_manager
+create policy customers_select on public.customers
+  for select using (pizzeria_id = public.current_pizzeria_id());
+
+create policy customers_insert on public.customers
+  for insert with check (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() in ('owner_manager', 'attendant'));
+
+create policy customers_update on public.customers
+  for update using (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() in ('owner_manager', 'attendant'));
+
+create policy customers_delete on public.customers
+  for delete using (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager');
+
+-- 4.15 inventory_items: SELECT equipe; escrita só owner_manager
 create policy inventory_items_select on public.inventory_items
   for select using (pizzeria_id = public.current_pizzeria_id());
-create policy inventory_items_modify on public.inventory_items
-  for all using (pizzeria_id = public.current_pizzeria_id() and exists (select 1 from public.profiles where id = auth.uid() and role = 'owner_manager'));
 
+create policy inventory_items_modify on public.inventory_items
+  for all using (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager')
+  with check (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager');
+
+-- 4.16 inventory_alerts: SELECT equipe; UPDATE de resolução só owner_manager; DELETE bloqueado
 create policy inventory_alerts_select on public.inventory_alerts
   for select using (pizzeria_id = public.current_pizzeria_id());
-create policy inventory_alerts_modify on public.inventory_alerts
-  for all using (pizzeria_id = public.current_pizzeria_id() and exists (select 1 from public.profiles where id = auth.uid() and role = 'owner_manager'));
 
--- Policies para delivery_reviews & reports & settings
+create policy inventory_alerts_update on public.inventory_alerts
+  for update using (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager')
+  with check (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager');
+
+-- 4.17 delivery_reviews: SELECT equipe; escrita bloqueada para equipe (exclusiva de Edge Function via service_role)
 create policy delivery_reviews_select on public.delivery_reviews
   for select using (pizzeria_id = public.current_pizzeria_id());
 
+-- 4.18 reports: SELECT só owner_manager; escrita bloqueada para equipe (exclusiva de Cron via service_role)
 create policy reports_select on public.reports
-  for select using (pizzeria_id = public.current_pizzeria_id() and exists (select 1 from public.profiles where id = auth.uid() and role = 'owner_manager'));
-
-create policy ai_settings_select on public.ai_settings
-  for select using (pizzeria_id = public.current_pizzeria_id());
-create policy ai_settings_modify on public.ai_settings
-  for all using (pizzeria_id = public.current_pizzeria_id() and exists (select 1 from public.profiles where id = auth.uid() and role = 'owner_manager'));
-
-create policy operating_hours_select on public.operating_hours
-  for select using (pizzeria_id = public.current_pizzeria_id());
-create policy operating_hours_modify on public.operating_hours
-  for all using (pizzeria_id = public.current_pizzeria_id() and exists (select 1 from public.profiles where id = auth.uid() and role = 'owner_manager'));
-
-create policy customers_select on public.customers
-  for select using (pizzeria_id = public.current_pizzeria_id());
-create policy customers_modify on public.customers
-  for all using (pizzeria_id = public.current_pizzeria_id());
+  for select using (pizzeria_id = public.current_pizzeria_id() and public.current_user_role() = 'owner_manager');
