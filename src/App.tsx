@@ -1,6 +1,6 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from '@/contexts/AuthContext'
+import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 
 import { Login } from '@/pages/Login'
@@ -19,17 +19,34 @@ import { SettingsHours } from '@/pages/SettingsHours'
 import { SettingsTeam } from '@/pages/SettingsTeam'
 import { PublicStore } from '@/pages/PublicStore'
 
+// Redirecionamento inicial baseado no papel da equipe
+const IndexRedirect: React.FC = () => {
+  const { user, profile, loading } = useAuth()
+
+  if (loading) return null
+
+  if (!user || !profile) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (profile.role === 'kitchen') {
+    return <Navigate to="/kitchen-queue" replace />
+  }
+
+  return <Navigate to="/unified-orders" replace />
+}
+
 export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
           {/* Rotas Públicas */}
-          <Route path="/" element={<Navigate to="/unified-orders" replace />} />
+          <Route path="/" element={<IndexRedirect />} />
           <Route path="/login" element={<Login />} />
           <Route path="/loja" element={<PublicStore />} />
 
-          {/* Rotas Protegidas da Equipe Interna */}
+          {/* 1. Tela Unificada (Dono/Gerente e Atendente) */}
           <Route
             path="/unified-orders"
             element={
@@ -38,6 +55,8 @@ export function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* 2. Detalhe do Pedido (Todos da Equipe) */}
           <Route
             path="/order/:id"
             element={
@@ -46,6 +65,8 @@ export function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* 3. Fila da Cozinha (Foco Cozinha + Atendente e Gerente) */}
           <Route
             path="/kitchen-queue"
             element={
@@ -54,6 +75,8 @@ export function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* 4. Cardápio Próprio (Apenas Dono/Gerente) */}
           <Route
             path="/menu-management"
             element={
@@ -62,6 +85,8 @@ export function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* 5. WhatsApp Inbox & IA (Dono/Gerente e Atendente) */}
           <Route
             path="/whatsapp-inbox"
             element={
@@ -70,6 +95,8 @@ export function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* 6. Estoque & Alertas (Todos da Equipe) */}
           <Route
             path="/inventory"
             element={
@@ -78,6 +105,8 @@ export function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* 7. Avaliações Deliveries (Dono/Gerente e Atendente) */}
           <Route
             path="/delivery-reviews"
             element={
@@ -86,6 +115,8 @@ export function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* 8. Relatório Diário (Apenas Dono/Gerente) */}
           <Route
             path="/reports-daily"
             element={
@@ -94,6 +125,8 @@ export function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* 9. Relatório Semanal com IA (Apenas Dono/Gerente) */}
           <Route
             path="/reports-weekly"
             element={
@@ -102,6 +135,8 @@ export function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* 10. Canais & Integrações (Apenas Dono/Gerente) */}
           <Route
             path="/settings-channels"
             element={
@@ -110,6 +145,8 @@ export function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* 11. Configurações da IA (Apenas Dono/Gerente) */}
           <Route
             path="/settings-ai"
             element={
@@ -118,6 +155,8 @@ export function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* 12. Horários & Taxas (Apenas Dono/Gerente) */}
           <Route
             path="/settings-hours"
             element={
@@ -126,6 +165,8 @@ export function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* 13. Equipe & Papéis (Apenas Dono/Gerente) */}
           <Route
             path="/settings-team"
             element={
@@ -135,7 +176,8 @@ export function App() {
             }
           />
 
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* Fallback de rota inexistente */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
