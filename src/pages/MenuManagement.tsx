@@ -28,8 +28,10 @@ import {
   X,
   Check,
   Store,
-  MessageSquare
+  MessageSquare,
+  Leaf
 } from 'lucide-react'
+import { isVegetariana, hasMultipleSizes } from '@/lib/menuDisplay'
 
 export const MenuManagement: React.FC = () => {
   const [categories, setCategories] = useState<MenuCategory[]>([])
@@ -410,6 +412,8 @@ export const MenuManagement: React.FC = () => {
             {filteredItems.map((item) => {
               const catName = categories.find((c) => c.id === item.category_id)?.name || 'Geral'
               const optionsCount = item.options?.length || 0
+              const vegetariana = catName.toLowerCase().includes('pizza') && isVegetariana(item)
+              const showFromLabel = hasMultipleSizes(item)
 
               return (
                 <div
@@ -429,10 +433,17 @@ export const MenuManagement: React.FC = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/40" />
 
-                    {/* Category pill */}
-                    <span className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[10px] font-semibold text-orange-400 border border-white/10">
-                      {catName}
-                    </span>
+                    {/* Category pill + Vegetariana badge */}
+                    <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
+                      <span className="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[10px] font-semibold text-orange-400 border border-white/10">
+                        {catName}
+                      </span>
+                      {vegetariana && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/90 text-white text-[10px] font-bold shadow">
+                          <Leaf className="w-3 h-3" /> Vegetariana
+                        </span>
+                      )}
+                    </div>
 
                     {/* Quick Availability Toggle */}
                     <button
@@ -450,6 +461,11 @@ export const MenuManagement: React.FC = () => {
 
                     {/* Price Tag Overlay */}
                     <div className="absolute bottom-3 left-3">
+                      {showFromLabel && (
+                        <span className="block text-[10px] text-slate-300 uppercase font-semibold tracking-wide">
+                          A partir de
+                        </span>
+                      )}
                       <span className="text-lg font-extrabold font-mono text-white drop-shadow-md">
                         R$ {item.base_price.toFixed(2).replace('.', ',')}
                       </span>

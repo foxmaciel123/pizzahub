@@ -28,86 +28,100 @@ export interface MenuItem {
   options?: MenuItemOption[]
 }
 
+// Incrementar sempre que initialCategories/initialItems mudar de conteúdo,
+// para que navegadores com o cardápio antigo em cache sejam migrados.
+const MENU_SEED_VERSION = 'full-forneria-v1'
+
 const initialCategories: MenuCategory[] = [
-  { id: 'cat-1', pizzeria_id: 'piz-123', name: 'Pizzas Salgadas Tradicionais', sort_order: 1 },
-  { id: 'cat-2', pizzeria_id: 'piz-123', name: 'Pizzas Especiais & Gourmet', sort_order: 2 },
+  { id: 'cat-1', pizzeria_id: 'piz-123', name: 'Combos', sort_order: 1 },
+  { id: 'cat-2', pizzeria_id: 'piz-123', name: 'Pizzas Salgadas', sort_order: 2 },
   { id: 'cat-3', pizzeria_id: 'piz-123', name: 'Pizzas Doces', sort_order: 3 },
-  { id: 'cat-4', pizzeria_id: 'piz-123', name: 'Bebidas & Refrigerantes', sort_order: 4 }
+  { id: 'cat-4', pizzeria_id: 'piz-123', name: 'Bebidas', sort_order: 4 }
 ]
 
+// Preços das pizzas avulsas são fictícios (a confirmar com o cliente) —
+// os dois combos usam os valores reais informados no briefing.
 const initialItems: MenuItem[] = [
   {
-    id: 'item-101',
+    id: 'item-combo-familia',
     pizzeria_id: 'piz-123',
     category_id: 'cat-1',
-    name: 'Pizza Calabresa Artesanal',
-    description: 'Molho de tomate italiano pelati, mussarela especial, calabresa fatiada fina, rodelas de cebola roxa fresca e orégano.',
-    base_price: 64.90,
-    image_url: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?auto=format&fit=crop&w=800&q=80',
+    name: 'Combo Família',
+    description: '2 Pizzas de 40cm, 1 Pizza Doce de 20cm e 1 Guaraná Antarctica 1,5L. Ativo de terça a domingo, das 18h às 23h59.',
+    base_price: 139.98,
+    image_url: 'https://images.unsplash.com/photo-1594007654729-407eedc4be65?auto=format&fit=crop&w=800&q=80',
     is_available: true,
     created_at: new Date().toISOString(),
-    options: [
-      { id: 'opt-1', menu_item_id: 'item-101', option_group: 'Tamanho', name: 'Média (6 fatias)', price_delta: 0 },
-      { id: 'opt-2', menu_item_id: 'item-101', option_group: 'Tamanho', name: 'Grande (8 fatias)', price_delta: 12.00 },
-      { id: 'opt-3', menu_item_id: 'item-101', option_group: 'Borda', name: 'Borda Vulcão Catupiry Original', price_delta: 14.00 },
-      { id: 'opt-4', menu_item_id: 'item-101', option_group: 'Borda', name: 'Borda Recheada Cheddar Cremoso', price_delta: 12.00 },
-      { id: 'opt-5', menu_item_id: 'item-101', option_group: 'Adicionais', name: 'Bacon Crocante Extra', price_delta: 6.00 }
-    ]
+    options: []
   },
   {
-    id: 'item-102',
+    id: 'item-combo-mais10',
     pizzeria_id: 'piz-123',
     category_id: 'cat-1',
-    name: 'Pizza Margherita Napolitana',
-    description: 'Molho artesanal de tomates maduros, fatias de mussarela de búfala fresca, queijo parmesão ralado e manjericão fresco colhido.',
-    base_price: 68.00,
-    image_url: 'https://images.unsplash.com/photo-1604382355076-af4b0eb60143?auto=format&fit=crop&w=800&q=80',
+    name: 'Combo +10',
+    description: '1 Pizza de 40cm + R$10,00 e você ganha 1 Pizza Doce de 20cm de brinde. Ativo de terça a domingo, das 18h às 23h59.',
+    base_price: 64.99,
+    image_url: 'https://images.unsplash.com/photo-1571066811602-716837d681de?auto=format&fit=crop&w=800&q=80',
     is_available: true,
     created_at: new Date().toISOString(),
-    options: [
-      { id: 'opt-6', menu_item_id: 'item-102', option_group: 'Tamanho', name: 'Grande (8 fatias)', price_delta: 0 },
-      { id: 'opt-7', menu_item_id: 'item-102', option_group: 'Borda', name: 'Borda Tradicional Crocante', price_delta: 0 },
-      { id: 'opt-8', menu_item_id: 'item-102', option_group: 'Adicionais', name: 'Tomate Cereja Confitado Extra', price_delta: 5.00 }
-    ]
+    options: []
   },
   {
-    id: 'item-103',
+    id: 'item-calabresa',
     pizzeria_id: 'piz-123',
     category_id: 'cat-2',
-    name: 'Pizza Quatro Queijos Nobres',
-    description: 'Combinação refinada de mussarela de cura, provolone defumado, gorgonzola cremoso e catupiry legítimo sobre massa artesanal.',
-    base_price: 79.90,
-    image_url: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80',
+    name: 'Pizza Calabresa',
+    description: 'Queijo mussarela, calabresa, cebola e orégano.',
+    base_price: 54.90,
+    image_url: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?auto=format&fit=crop&w=800&q=80',
     is_available: true,
     created_at: new Date().toISOString(),
-    options: [
-      { id: 'opt-9', menu_item_id: 'item-103', option_group: 'Tamanho', name: 'Grande (8 fatias)', price_delta: 0 },
-      { id: 'opt-10', menu_item_id: 'item-103', option_group: 'Borda', name: 'Borda Vulcão Quatro Queijos', price_delta: 16.00 }
-    ]
+    options: []
   },
   {
-    id: 'item-104',
+    id: 'item-frango-catupiry',
+    pizzeria_id: 'piz-123',
+    category_id: 'cat-2',
+    name: 'Pizza Frango com Catupiry',
+    description: 'Frango desfiado, Catupiry e orégano.',
+    base_price: 57.90,
+    image_url: 'https://images.unsplash.com/photo-1571407970349-bc81e7e96d47?auto=format&fit=crop&w=800&q=80',
+    is_available: true,
+    created_at: new Date().toISOString(),
+    options: []
+  },
+  {
+    id: 'item-moda-full',
+    pizzeria_id: 'piz-123',
+    category_id: 'cat-2',
+    name: 'Pizza Moda Full',
+    description: 'Sabor da casa: mussarela, frango, bacon, cream cheese Philadelphia, um toque de parmesão ralado e orégano.',
+    base_price: 62.90,
+    image_url: 'https://images.unsplash.com/photo-1601924582970-9238bcb495d9?auto=format&fit=crop&w=800&q=80',
+    is_available: true,
+    created_at: new Date().toISOString(),
+    options: []
+  },
+  {
+    id: 'item-pizza-doce',
     pizzeria_id: 'piz-123',
     category_id: 'cat-3',
-    name: 'Pizza Doce Banana com Canela & Doce de Leite',
-    description: 'Fatias generosas de banana nanica caramelizadas, doce de leite artesanal de Minas e canela em pó polvilhada na hora.',
-    base_price: 49.90,
+    name: 'Pizza Doce 20cm',
+    description: 'Consulte o sabor disponível do dia com nosso atendimento.',
+    base_price: 34.90,
     image_url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80',
     is_available: true,
     created_at: new Date().toISOString(),
-    options: [
-      { id: 'opt-11', menu_item_id: 'item-104', option_group: 'Tamanho', name: 'Média (6 fatias)', price_delta: 0 },
-      { id: 'opt-12', menu_item_id: 'item-104', option_group: 'Adicionais', name: 'Bola de Sorvete de Creme', price_delta: 9.00 }
-    ]
+    options: []
   },
   {
-    id: 'item-105',
+    id: 'item-guarana',
     pizzeria_id: 'piz-123',
     category_id: 'cat-4',
-    name: 'Refrigerante Coca-Cola Original 2L',
-    description: 'Garrafa pet 2 litros gelada.',
-    base_price: 14.00,
-    image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=800&q=80',
+    name: 'Guaraná Antarctica 1,5L',
+    description: 'Garrafa 1,5 litros gelada.',
+    base_price: 12.90,
+    image_url: 'https://images.unsplash.com/photo-1581636625402-29b2a704ef13?auto=format&fit=crop&w=800&q=80',
     is_available: true,
     created_at: new Date().toISOString(),
     options: []
@@ -122,8 +136,9 @@ class MenuStore {
   constructor() {
     const savedCats = localStorage.getItem('pizzahub_menu_categories')
     const savedItems = localStorage.getItem('pizzahub_menu_items')
+    const savedSeedVersion = localStorage.getItem('pizzahub_menu_seed_version')
 
-    if (savedCats && savedItems) {
+    if (savedCats && savedItems && savedSeedVersion === MENU_SEED_VERSION) {
       try {
         this.categories = JSON.parse(savedCats)
         this.items = JSON.parse(savedItems)
@@ -139,6 +154,7 @@ class MenuStore {
   }
 
   private save() {
+    localStorage.setItem('pizzahub_menu_seed_version', MENU_SEED_VERSION)
     localStorage.setItem('pizzahub_menu_categories', JSON.stringify(this.categories))
     localStorage.setItem('pizzahub_menu_items', JSON.stringify(this.items))
     this.notify()
